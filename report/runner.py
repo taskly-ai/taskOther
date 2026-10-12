@@ -61,11 +61,13 @@ def run_cells(cells, fig_dir: Path) -> dict:
     fig_dir.mkdir(parents=True, exist_ok=True)
     for c in cells:
         buf = io.StringIO()
+        before = set(ns.get("RESULTS", {}))
         with contextlib.redirect_stdout(buf):
             exec(compile(c.code, f"<{c.cid}>", "exec"), ns)
         if c.module == "common":
             ns["FIG_DIR"] = str(fig_dir)          # show() читает глобальную FIG_DIR
-        c.out = buf.getvalue().rstrip()
+        new = [k for k in ns["RESULTS"] if k not in before]
+        c.out = "\n".join("\n".join(ns["RESULTS"][k]["lines"]) for k in new) or buf.getvalue().rstrip()
     return ns
 
 
@@ -75,6 +77,16 @@ def write_notebook(cells, path: Path, title_md: str):
         src = f"# {c.title}\n{c.code}\n"
         nb_cells.append({"cell_type": "code", "metadata": {}, "execution_count": None,
                          "outputs": [], "source": src.splitlines(keepends=True)})
+    nb_cells.append({"cell_type": "markdown", "metadata": {}, "source":
+                     "## Результаты для скриншотов\nВыполнить после всех ячеек выше. Каждый блок между "
+                     "линиями «=====» — один скриншот; имя файла указано в заголовке блока."})
+    nb_cells.append({"cell_type": "code", "metadata": {}, "execution_count": None, "outputs": [],
+                     "source": ["# РЕЗУЛЬТАТЫ ВСЕХ ЗАДАЧ (скриншоты делать здесь)\n", "show_results()\n"]})
+    nb_cells.append({"cell_type": "code", "metadata": {}, "execution_count": None, "outputs": [],
+                     "source": ["# Графики всех задач (скриншоты не нужны: они уже в отчёте как рисунки)\n",
+                                "show_figures()\n"]})
+    for i, c in enumerate(nb_cells):
+        c["id"] = f"cell-{i:02d}"
     nb = {"cells": nb_cells, "nbformat": 4, "nbformat_minor": 5,
           "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"},
                        "language_info": {"name": "python"}, "colab": {"provenance": []}}}

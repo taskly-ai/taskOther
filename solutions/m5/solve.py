@@ -2,7 +2,10 @@
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))  # noqa
 from _common import *  # noqa
 
+import atexit; atexit.register(show_results)  # noqa: консольный запуск — вывод в конце
+
 # %% Задача 4.1. Синтез аммиака: 1/2 N2 + 3/2 H2 <=> NH3 (N2 + 3 H2 <=> 2 NH3)
+task("t41", "Задача 4.1")
 Kp41, P41, T41 = 0.05, 220.0, 589.0          # Kp, 1/атм; P, атм; T, К
 n0_41 = np.array([1.1, 3.0, 0.2])            # N2, H2, NH3, моль/ч (1.1 : 3 : 0.2)
 nu41 = np.array([-0.5, -1.5, 1.0])           # стехиометрические коэффициенты
@@ -24,15 +27,16 @@ n41, y41 = comp41(xi41)
 res41 = dict(xi=xi41, n=n41, y=y41,
              X_N2=xi41 * 0.5 / n0_41[0], X_H2=xi41 * 1.5 / n0_41[1],
              check=y41[2] / (y41[0] ** 0.5 * y41[1] ** 1.5) / P41)
-print(f"xi = {xi41:.6f} моль/ч (xi_max = {xi_max:.4f})")
+out(f"xi = {xi41:.6f} моль/ч (xi_max = {xi_max:.4f})")
 for nm, a, b, c in zip(("N2", "H2", "NH3"), n0_41, n41, y41):
-    print(f"{nm:4s} начало {a:.4f}  конец {b:.4f} моль/ч  y = {c:.4f}")
-print(f"Всего {n0_41.sum():.4f} -> {n41.sum():.4f} моль/ч; "
-      f"проверка Kp = {res41['check']:.6f} 1/атм")
-print(f"Степень превращения: N2 {res41['X_N2']*100:.2f} %,"
-      f" H2 {res41['X_H2']*100:.2f} %")
+    out(f"{nm:4s} начало {a:.4f}  конец {b:.4f} моль/ч  y = {c:.4f}")
+out(f"Всего {n0_41.sum():.4f} -> {n41.sum():.4f} моль/ч; "
+    f"проверка Kp = {res41['check']:.6f} 1/атм")
+out(f"Степень превращения: N2 {res41['X_N2']*100:.2f} %,"
+    f" H2 {res41['X_H2']*100:.2f} %")
 
 # %% Задача 4.2а. C2H6 <=> C2H4 + H2 при 1100 К и 1 атм; K по справочным данным
+task("t42a", "Задача 4.2а")
 # ΔH°f и ΔG°f, кал/моль (справочник IFP, разделы E18 и E19); H2 — простое вещество, 0
 Tref = np.array([298.0, 400.0, 600.0, 800.0, 1000.0])
 dHf = {"C2H6": np.array([-20236, -21419, -23280, -24530, -25280.0]),
@@ -61,10 +65,10 @@ res42 = dict(dH_r=dH_r, dG_r=dG_r, K_ref=K_ref, K=K42, K_check=K42_check,
              dH1100=dH_lin(T42), x=x42, n=n42, y=y42,
              x_check=np.sqrt(K42_check / (K42_check + P42)))
 for T, a, b, k in zip(Tref, dH_r, dG_r, K_ref):
-    print(f"T = {T:6.0f} К  ΔH°r = {a/1000:7.2f}  ΔG°r = {b/1000:7.2f} кДж/моль"
-          f"  K = {k:.4e}")
-print(f"K(1100 К): Вант-Гофф {K42:.4f}; экстраполяция ΔG° {K42_check:.4f}")
-print(f"x = {x42:.5f}; y: C2H6 {y42[0]:.4f}, C2H4 {y42[1]:.4f}, H2 {y42[2]:.4f}")
+    out(f"T = {T:6.0f} К  ΔH°r = {a/1000:7.2f}  ΔG°r = {b/1000:7.2f} кДж/моль"
+        f"  K = {k:.4e}")
+out(f"K(1100 К): Вант-Гофф {K42:.4f}; экстраполяция ΔG° {K42_check:.4f}")
+out(f"x = {x42:.5f}; y: C2H6 {y42[0]:.4f}, C2H4 {y42[1]:.4f}, H2 {y42[2]:.4f}")
 
 fig, ax = plt.subplots(figsize=(6, 3.6))
 ax.plot(Tref, dG_r / 1000, "o-", label="ΔG°r по справочнику")
@@ -77,6 +81,7 @@ style_axes(ax)
 show(fig, "t42")
 
 # %% Задача 4.2б. Две реакции при 1367 К: C2H6 <=> C2H4 + H2, C2H4 <=> C2H2 + H2
+task("t42b", "Задача 4.2б")
 K1, K2, P43 = 37.6, 0.769, 1.0
 
 
@@ -96,7 +101,7 @@ x43 = fsolve(eqs43, [0.9, 0.3], xtol=1e-14)
 n43, y43 = comp43(x43)
 res43 = dict(x=x43, n=n43, y=y43, resid=np.array(eqs43(x43)),
              K1c=y43[1] * y43[2] * P43 / y43[0], K2c=y43[3] * y43[2] * P43 / y43[1])
-print(f"x1 = {x43[0]:.5f}, x2 = {x43[1]:.5f}; невязки {res43['resid']}")
+out(f"x1 = {x43[0]:.5f}, x2 = {x43[1]:.5f}; невязки {res43['resid']}")
 for nm, a, b in zip(("C2H6", "C2H4", "H2", "C2H2"), n43, y43):
-    print(f"{nm:5s} {a:.5f} моль  y = {b:.4f}")
-print(f"Проверка: K1 = {res43['K1c']:.4f}, K2 = {res43['K2c']:.5f}")
+    out(f"{nm:5s} {a:.5f} моль  y = {b:.4f}")
+out(f"Проверка: K1 = {res43['K1c']:.4f}, K2 = {res43['K2c']:.5f}")

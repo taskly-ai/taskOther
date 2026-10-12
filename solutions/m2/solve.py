@@ -2,6 +2,8 @@
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))  # noqa
 from _common import *  # noqa
 
+import atexit; atexit.register(show_results)  # noqa: консольный запуск — вывод в конце
+
 # %% Задачи 2.1–2.2. Общая часть: параметры RK/SRK и решение кубического уравнения
 # Tc, К; Pc, атм; ω — справочник Refining & Chemicals (IFP Training, 2014), раздел A2
 CRIT = {"CH4": (190.6, 45.4, 0.008),
@@ -32,40 +34,42 @@ def solve_z(a, b, T, P):
 
 def volumes(names, y, T, P_atm):
     P = P_atm * ATM
-    out = {"ИГ": dict(Z=1.0, v=R * T / P)}
+    res = {"ИГ": dict(Z=1.0, v=R * T / P)}
     for eos in ("RK", "SRK"):
         ab = np.array([eos_ab(g, T, eos) for g in names])
         ai, bi = ab[:, 0], ab[:, 1]
         a = np.sum(np.outer(y, y) * np.sqrt(np.outer(ai, ai)))  # ΣΣ yi·yj·√(ai·aj)
         b = np.sum(y * bi)                                       # b = Σ yi·bi
         Z, roots, A, B = solve_z(a, b, T, P)
-        out[eos] = dict(Z=Z, v=Z * R * T / P, a=a, b=b, ai=ai, bi=bi,
+        res[eos] = dict(Z=Z, v=Z * R * T / P, a=a, b=b, ai=ai, bi=bi,
                         A=A, B=B, roots=roots)
-    for k, d in out.items():
+    for k, d in res.items():
         d["v_L"] = d["v"] * 1000                                  # м3/моль -> л/моль
-        d["dev"] = (d["v"] / out["ИГ"]["v"] - 1) * 100
-        print(f"{k:4s} Z = {d['Z']:.4f}  v = {d['v']:.4e} м3/моль"
-              f" = {d['v_L']:.4f} л/моль"
-              f"  отклонение от ИГ {d['dev']:+.2f} %")
-    return out
+        d["dev"] = (d["v"] / res["ИГ"]["v"] - 1) * 100
+        out(f"{k:4s} Z = {d['Z']:.4f}  v = {d['v']:.4e} м3/моль"
+            f" = {d['v_L']:.4f} л/моль"
+            f"  отклонение от ИГ {d['dev']:+.2f} %")
+    return res
 
 
 # %% Задача 2.1. Метан, P = 40 атм, T = 350 К
+task("t21", "Задача 2.1")
 T21, P21 = 350.0, 40.0
-print(f"P = {P21} атм = {P21*ATM/1e6:.4f} МПа; Tr = {T21/CRIT['CH4'][0]:.3f}; "
-      f"Pr = {P21/CRIT['CH4'][1]:.3f}")
+out(f"P = {P21} атм = {P21*ATM/1e6:.4f} МПа; Tr = {T21/CRIT['CH4'][0]:.3f}; "
+    f"Pr = {P21/CRIT['CH4'][1]:.3f}")
 res21 = volumes(["CH4"], np.array([1.0]), T21, P21)
 for eos in ("RK", "SRK"):
-    print(eos, "корни Z:", np.round(res21[eos]["roots"], 5))
+    out(eos, "корни Z:", np.round(res21[eos]["roots"], 5))
 
 # %% Задача 2.2. Смесь 25 % NH3, остальное N2 : H2 = 1 : 3; P = 250 атм, T = 520 К
+task("t22", "Задача 2.2")
 names22 = ["NH3", "N2", "H2"]
 y22 = np.array([0.25, 0.75 * 1 / 4, 0.75 * 3 / 4])
 T22, P22 = 520.0, 250.0
-print("Состав, мол. доли:", ", ".join(f"{n} {v:.4f}" for n, v in zip(names22, y22)))
+out("Состав, мол. доли:", ", ".join(f"{n} {v:.4f}" for n, v in zip(names22, y22)))
 res22 = volumes(names22, y22, T22, P22)
 for eos in ("RK", "SRK"):
-    print(eos, "a_i =", np.round(res22[eos]["ai"], 5), " b_i =", res22[eos]["bi"])
+    out(eos, "a_i =", np.round(res22[eos]["ai"], 5), " b_i =", res22[eos]["bi"])
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 for axx, res, T, P, title in ((ax[0], res21, T21, P21, "Метан, 40 атм, 350 К"),

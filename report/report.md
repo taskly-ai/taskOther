@@ -43,20 +43,57 @@ def style_axes(ax):
 
 
 FIG_DIR = None      # при сборке отчёта сюда записывается папка для рисунков
+RESULTS = {}        # результаты задач: выводятся вместе в последней ячейке блокнота
+FIGS = []           # графики задач: выводятся в самой последней ячейке
+_CUR = [None]
+
+
+def task(key, title):
+    """Начать задачу: дальнейший вывод out() относится к ней."""
+    _CUR[0] = key
+    RESULTS[key] = {"title": title, "lines": []}
+
+
+def out(*args, sep=" "):
+    """Запомнить строку результата текущей задачи (вместо print)."""
+    RESULTS[_CUR[0]]["lines"].append(sep.join(str(a) for a in args))
 
 
 def show(fig, name):
-    """Показать рисунок (в Colab) и при сборке отчёта сохранить его в PNG."""
+    """Сохранить рисунок: в Colab он выводится в конце, при сборке отчёта — в PNG."""
     fig.tight_layout()
     if FIG_DIR is not None:
         fig.savefig(f"{FIG_DIR}/{name}.png")
-        plt.close(fig)
     else:
-        plt.show()
+        FIGS.append((name, fig))
+    plt.close(fig)
+
+
+def show_results():
+    """Все результаты подряд; каждый блок — один скриншот (имя файла указано в заголовке)."""
+    for key, r in RESULTS.items():
+        print("=" * 78)
+        print(f"{r['title']}   ->  скриншот: {key}.png")
+        print("=" * 78)
+        print("\n".join(r["lines"]))
+        print()
+
+
+def show_figures():
+    """Все графики (в отчёте они уже вставлены как рисунки; скриншоты не нужны)."""
+    try:
+        from IPython.display import display
+    except ImportError:
+        display = None
+    for name, fig in FIGS:
+        print(name)
+        if display:
+            display(fig)
 
 
 plt.rcParams.update({"figure.dpi": 110, "font.size": 10, "savefig.dpi": 200})
 ```
+
 
 Остаточная сумма квадратов и коэффициент детерминации, используемые во всех задачах темы 1:
 
@@ -117,6 +154,7 @@ $$\int_{T_0}^{T} C\,dT \approx \sum_{i=1}^{n-1} \frac{C_i + C_{i+1}}{2} \cdot (T
 
 ```python
 # Задача 1.1. Полином 1-й степени C(T) и средняя теплоёмкость пропана
+task("t11", "Задача 1.1")
 T11 = np.array([50, 100, 150, 200, 273.15, 300, 400, 500, 600, 700,
                 800, 900, 1000, 1100, 1200, 1300])                      # К
 C11 = np.array([34.16, 41.3, 48.79, 56.07, 68.74, 73.93, 94.01, 112.59,
@@ -135,11 +173,11 @@ Cm_trap = I_trap / (Tk - T0)
 res11 = dict(a1=p11[0], a0=p11[1], R2=r2(C11, C_fit), SSE=sse(C11, C_fit),
              I_poly=I_poly, I_trap=I_trap, Cm_poly=Cm_poly, Cm_trap=Cm_trap,
              d_rel=abs(Cm_poly - Cm_trap) / Cm_trap * 100, resid=C11 - C_fit)
-print(f"C(T) = {p11[1]:.4f} + {p11[0]:.6f}*T")
-print(f"R2 = {res11['R2']:.5f};  SSE = {res11['SSE']:.2f}")
-print(f"Интеграл: полином {I_poly:.1f}, трапеции {I_trap:.1f}")
-print(f"<C>(1300 K): полином {Cm_poly:.3f}, трапеции {Cm_trap:.3f}, "
-      f"расхождение {res11['d_rel']:.3f} %")
+out(f"C(T) = {p11[1]:.4f} + {p11[0]:.6f}*T")
+out(f"R2 = {res11['R2']:.5f};  SSE = {res11['SSE']:.2f}")
+out(f"Интеграл: полином {I_poly:.1f}, трапеции {I_trap:.1f}")
+out(f"<C>(1300 K): полином {Cm_poly:.3f}, трапеции {Cm_trap:.3f}, "
+    f"расхождение {res11['d_rel']:.3f} %")
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 Tg = np.linspace(T0, Tk, 200)
@@ -213,6 +251,7 @@ $$R^{2}_{скорр} = 1 - (1 - R^{2}) \cdot \frac{n - 1}{n - p}.$$
 
 ```python
 # Задача 1.2. Модель y = a·(ln(x/b))^(-2/3) для отпарной колонны
+task("t12", "Задача 1.2")
 x12 = np.array([0.263, 0.294, 0.321, 0.367, 0.429, 0.608, 1.33, 1.36])   # кг/с
 y12 = np.array([0.34, 0.32, 0.24, 0.20, 0.16, 0.11, 0.06, 0.04])
 
@@ -234,8 +273,8 @@ def model_exp(x, a, k, c):                  # альтернатива: эксп
 # поэтому параметры ищутся нелинейным МНК с границами.
 k_lin, m_lin = np.polyfit(np.log(x12), y12 ** -1.5, 1)
 b_linearized = np.exp(-m_lin / k_lin)
-print(f"b по линеаризации = {b_linearized:.4f} кг/с > x_min = {x12.min()}"
-      " -> недопустимо")
+out(f"b по линеаризации = {b_linearized:.4f} кг/с > x_min = {x12.min()}"
+    " -> недопустимо")
 models = {"заданная": (model_given, [0.1, 0.2], ([0, 1e-4], [np.inf, 0.2629])),
           "степенная": (model_power, [0.05, 1.0], (-np.inf, np.inf)),
           "экспоненциальная": (model_exp, [1.0, 3.0, 0.05], (-np.inf, np.inf))}
@@ -247,8 +286,8 @@ for name, (fn, p0, bnd) in models.items():
     res12[name] = dict(p=p, R2=r2(y12, yc), SSE=sse(y12, yc), k=k, yc=yc,
                        R2adj=1 - (1 - r2(y12, yc)) * (n - 1) / (n - k),
                        max_abs=np.max(np.abs(y12 - yc)))
-    print(f"{name:17s} p = {np.round(p, 5)}  R2 = {res12[name]['R2']:.4f}  "
-          f"R2adj = {res12[name]['R2adj']:.4f}  SSE = {res12[name]['SSE']:.5f}")
+    out(f"{name:17s} p = {np.round(p, 5)}  R2 = {res12[name]['R2']:.4f}  "
+        f"R2adj = {res12[name]['R2adj']:.4f}  SSE = {res12[name]['SSE']:.5f}")
 
 fig, ax = plt.subplots(figsize=(6, 3.8))
 xg = np.linspace(0.263, 1.4, 300)
@@ -321,6 +360,7 @@ $$k = A \cdot e^{-E_a/(R T)}, \qquad \ln k = \ln A - \frac{E_a}{R} \cdot \frac{1
 
 ```python
 # Задача 1.3. Уравнение Аррениуса (вариант 1)
+task("t13", "Задача 1.3")
 t13 = np.array([100, 150, 200, 250, 300, 350, 400, 450, 500.0])        # °C
 k13 = np.array([0.05, 0.25, 0.60, 0.98, 1.35, 1.99, 2.87, 4.56, 8.43])  # 1/с
 T13 = t13 + 273.15                                                       # К
@@ -338,15 +378,15 @@ res13 = dict(Ea_lin=Ea_lin, A_lin=A_lin, Ea_nl=Ea_nl, A_nl=A_nl,
              R2_ln=r2(np.log(k13), lnk_calc), R2_k_lin=r2(k13, k_lin),
              R2_k_nl=r2(k13, k_nl), R2_ln_nl=r2(np.log(k13), np.log(k_nl)),
              resid_ln=np.log(k13) - lnk_calc, k_lin=k_lin, k_nl=k_nl)
-print(f"Линеаризация: Ea = {Ea_lin/1000:.2f} кДж/моль, A = {A_lin:.4e} 1/с, "
-      f"R2(ln k) = {res13['R2_ln']:.4f}, R2(k) = {res13['R2_k_lin']:.4f}")
-print(f"Нелинейный МНК: Ea = {Ea_nl/1000:.2f} кДж/моль, A = {A_nl:.4e} 1/с, "
-      f"R2(k) = {res13['R2_k_nl']:.4f}")
-print("Остатки ln k:", np.round(res13["resid_ln"], 3))
+out(f"Линеаризация: Ea = {Ea_lin/1000:.2f} кДж/моль, A = {A_lin:.4e} 1/с, "
+    f"R2(ln k) = {res13['R2_ln']:.4f}, R2(k) = {res13['R2_k_lin']:.4f}")
+out(f"Нелинейный МНК: Ea = {Ea_nl/1000:.2f} кДж/моль, A = {A_nl:.4e} 1/с, "
+    f"R2(k) = {res13['R2_k_nl']:.4f}")
+out("Остатки ln k:", np.round(res13["resid_ln"], 3))
 # проверка постоянства Ea: «локальная» энергия активации по соседним точкам
 Ea_loc = -R * np.diff(np.log(k13)) / np.diff(1 / T13)
 res13["Ea_loc"] = Ea_loc
-print("Ea по соседним точкам, кДж/моль:", np.round(Ea_loc / 1000, 1))
+out("Ea по соседним точкам, кДж/моль:", np.round(Ea_loc / 1000, 1))
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 ax[0].plot(1000 / T13, np.log(k13), "ko", label="эксперимент")
@@ -415,6 +455,7 @@ $$E_a = 3305.5 \cdot 8.314 = 27484\ \text{Дж/моль} = 27.48\ \text{кДж/�
 
 ```python
 # Задача 1.4. Вязкость ацетона: полиномы 1–3 степени (вариант 1)
+task("t14", "Задача 1.4")
 T14 = np.array([250, 260, 270, 280, 290, 300, 310, 320, 330, 350, 370, 390.0])  # К
 mu14 = np.array([0.500, 0.442, 0.395, 0.356, 0.322, 0.293, 0.268, 0.246,
                  0.230, 0.200, 0.170, 0.150])                                  # мПа∙с
@@ -427,10 +468,10 @@ for d in (1, 2, 3):
                     R2adj=1 - (1 - r2(mu14, mc)) * (n - 1) / (n - d - 1),
                     s=np.sqrt(sse(mu14, mc) / (n - d - 1)),
                     max_err=np.max(np.abs(mu14 - mc) / mu14) * 100)
-    print(f"степень {d}: b = {np.array2string(p, precision=6)}")
-    print(f"   R2 = {res14[d]['R2']:.5f}, R2adj = {res14[d]['R2adj']:.5f}, "
-          f"SSE = {res14[d]['SSE']:.3e}, s = {res14[d]['s']:.4f} мПа∙с, "
-          f"макс. отн. ошибка = {res14[d]['max_err']:.2f} %")
+    out(f"степень {d}: b = {np.array2string(p, precision=6)}")
+    out(f"   R2 = {res14[d]['R2']:.5f}, R2adj = {res14[d]['R2adj']:.5f}, "
+        f"SSE = {res14[d]['SSE']:.3e}, s = {res14[d]['s']:.4f} мПа∙с, "
+        f"макс. отн. ошибка = {res14[d]['max_err']:.2f} %")
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 Tg = np.linspace(250, 390, 200)
@@ -546,23 +587,24 @@ def solve_z(a, b, T, P):
 
 def volumes(names, y, T, P_atm):
     P = P_atm * ATM
-    out = {"ИГ": dict(Z=1.0, v=R * T / P)}
+    res = {"ИГ": dict(Z=1.0, v=R * T / P)}
     for eos in ("RK", "SRK"):
         ab = np.array([eos_ab(g, T, eos) for g in names])
         ai, bi = ab[:, 0], ab[:, 1]
         a = np.sum(np.outer(y, y) * np.sqrt(np.outer(ai, ai)))  # ΣΣ yi·yj·√(ai·aj)
         b = np.sum(y * bi)                                       # b = Σ yi·bi
         Z, roots, A, B = solve_z(a, b, T, P)
-        out[eos] = dict(Z=Z, v=Z * R * T / P, a=a, b=b, ai=ai, bi=bi,
+        res[eos] = dict(Z=Z, v=Z * R * T / P, a=a, b=b, ai=ai, bi=bi,
                         A=A, B=B, roots=roots)
-    for k, d in out.items():
+    for k, d in res.items():
         d["v_L"] = d["v"] * 1000                                  # м3/моль -> л/моль
-        d["dev"] = (d["v"] / out["ИГ"]["v"] - 1) * 100
-        print(f"{k:4s} Z = {d['Z']:.4f}  v = {d['v']:.4e} м3/моль"
-              f" = {d['v_L']:.4f} л/моль"
-              f"  отклонение от ИГ {d['dev']:+.2f} %")
-    return out
+        d["dev"] = (d["v"] / res["ИГ"]["v"] - 1) * 100
+        out(f"{k:4s} Z = {d['Z']:.4f}  v = {d['v']:.4e} м3/моль"
+            f" = {d['v_L']:.4f} л/моль"
+            f"  отклонение от ИГ {d['dev']:+.2f} %")
+    return res
 ```
+
 
 ## 2.1 Задание 1. Мольный объём метана
 
@@ -580,12 +622,13 @@ $$v = \frac{R T}{P} = \frac{8.314 \cdot 350}{4053000} = 7.1800 \cdot 10^{-4}\ \t
 
 ```python
 # Задача 2.1. Метан, P = 40 атм, T = 350 К
+task("t21", "Задача 2.1")
 T21, P21 = 350.0, 40.0
-print(f"P = {P21} атм = {P21*ATM/1e6:.4f} МПа; Tr = {T21/CRIT['CH4'][0]:.3f}; "
-      f"Pr = {P21/CRIT['CH4'][1]:.3f}")
+out(f"P = {P21} атм = {P21*ATM/1e6:.4f} МПа; Tr = {T21/CRIT['CH4'][0]:.3f}; "
+    f"Pr = {P21/CRIT['CH4'][1]:.3f}")
 res21 = volumes(["CH4"], np.array([1.0]), T21, P21)
 for eos in ("RK", "SRK"):
-    print(eos, "корни Z:", np.round(res21[eos]["roots"], 5))
+    out(eos, "корни Z:", np.round(res21[eos]["roots"], 5))
 ```
 
 Результат работы программы:
@@ -627,13 +670,14 @@ $$v_{SRK} = \frac{Z R T}{P} = \frac{0.9696 \cdot 8.314 \cdot 350}{4053000} = 6.9
 
 ```python
 # Задача 2.2. Смесь 25 % NH3, остальное N2 : H2 = 1 : 3; P = 250 атм, T = 520 К
+task("t22", "Задача 2.2")
 names22 = ["NH3", "N2", "H2"]
 y22 = np.array([0.25, 0.75 * 1 / 4, 0.75 * 3 / 4])
 T22, P22 = 520.0, 250.0
-print("Состав, мол. доли:", ", ".join(f"{n} {v:.4f}" for n, v in zip(names22, y22)))
+out("Состав, мол. доли:", ", ".join(f"{n} {v:.4f}" for n, v in zip(names22, y22)))
 res22 = volumes(names22, y22, T22, P22)
 for eos in ("RK", "SRK"):
-    print(eos, "a_i =", np.round(res22[eos]["ai"], 5), " b_i =", res22[eos]["bi"])
+    out(eos, "a_i =", np.round(res22[eos]["ai"], 5), " b_i =", res22[eos]["bi"])
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 for axx, res, T, P, title in ((ax[0], res21, T21, P21, "Метан, 40 атм, 350 К"),
@@ -746,6 +790,7 @@ def K_values(names, T, P):
     return np.array(K)
 ```
 
+
 ## 3.1 Задание 1. Температуры начала и конца кипения
 
 **Условие.** Рассчитать температуры начала (ТНК) и конца (ТКК) кипения смеси при абсолютном давлении 14 атм; смесь идеальная [1]. Состав (вариант 1): метан – 20 %, этан – 25 %, пропан – 35 %, н-бутан – 20 %.
@@ -762,6 +807,7 @@ $$f_{ТНК}(T) = \sum_{i} K_i(T, P) \cdot z_i - 1 = 0, \qquad f_{ТКК}(T) = \
 
 ```python
 # Задача 3.1. ТНК и ТКК смеси (вариант 1) при 14 атм
+task("t31", "Задача 3.1")
 names31 = ["CH4", "C2H6", "C3H8", "n-C4"]
 z31 = np.array([0.20, 0.25, 0.35, 0.20])
 P31 = 14 * ATM                                   # 14 атм = 1,4186 МПа = 205,7 psia
@@ -772,12 +818,12 @@ Td = brentq(f_dew, 100.0, 500.0)
 Kb, Kd = K_values(names31, Tb, P31), K_values(names31, Td, P31)
 res31 = dict(P=P31, Ppsia=P31 / PSI, Tb=Tb, Td=Td, tb=Tb - 273.15, td=Td - 273.15,
              Kb=Kb, Kd=Kd, y_b=Kb * z31, x_d=z31 / Kd)
-print(f"P = {P31/1e6:.4f} МПа = {P31/PSI:.2f} psia")
-print(f"ТНК = {Tb:.2f} К = {Tb-273.15:.2f} °C; ТКК = {Td:.2f} К = {Td-273.15:.2f} °C")
-print("K при ТНК:", np.round(Kb, 4))
-print("   состав первого пузырька y:", np.round(Kb * z31, 4))
-print("K при ТКК:", np.round(Kd, 4))
-print("   состав первой капли x:", np.round(z31 / Kd, 4))
+out(f"P = {P31/1e6:.4f} МПа = {P31/PSI:.2f} psia")
+out(f"ТНК = {Tb:.2f} К = {Tb-273.15:.2f} °C; ТКК = {Td:.2f} К = {Td-273.15:.2f} °C")
+out("K при ТНК:", np.round(Kb, 4))
+out("   состав первого пузырька y:", np.round(Kb * z31, 4))
+out("K при ТКК:", np.round(Kd, 4))
+out("   состав первой капли x:", np.round(z31 / Kd, 4))
 
 Tg = np.linspace(180, 380, 300)
 fig, ax = plt.subplots(figsize=(6, 3.6))
@@ -840,6 +886,7 @@ $$\sum_{i} \frac{z_i \cdot (K_i - 1)}{1 + e \cdot (K_i - 1)} = 0, \qquad x_i = \
 
 ```python
 # Задача 3.2. Сепарационный блок С1 -> С2 -> С3: базовый расчёт
+task("t32", "Задача 3.2 (базовый режим)")
 names32 = ["CH4", "C2H6", "C3H8", "i-C4", "n-C4", "n-C5"]
 z32 = np.array([0.72211, 0.03608, 0.22363, 0.00646, 0.00466, 0.00706])
 BASE = [(9.8e6, 40.8), (8.7e6, 12.8), (8.7e6, -40.8)]       # (P, Па; t, °C) для С1–С3
@@ -861,18 +908,18 @@ def flash(z, T, P):
 
 def train(conds, z=z32, F=1.0):
     """Газ сепаратора i — сырьё сепаратора i+1. F — расход сырья, моль/с."""
-    out, feed, Fi = [], z, F
+    stages, feed, Fi = [], z, F
     for P, t in conds:
         if Fi == 0:                         # газа из предыдущего сепаратора нет
             nan = np.full_like(z, np.nan)
-            out.append(dict(e=np.nan, x=nan, y=nan, K=nan, phase="нет сырья",
+            stages.append(dict(e=np.nan, x=nan, y=nan, K=nan, phase="нет сырья",
                             P=P, t=t, F=0.0, V=0.0, L=0.0))
             continue
         s = flash(feed, t + 273.15, P)
         s.update(P=P, t=t, F=Fi, V=Fi * s["e"], L=Fi * (1 - s["e"]))
-        out.append(s)
+        stages.append(s)
         feed, Fi = s["y"], s["V"]
-    return out
+    return stages
 
 
 def summary(tr, z=z32):
@@ -887,14 +934,14 @@ def summary(tr, z=z32):
 base = train(BASE)
 res32 = dict(base=base, sum=summary(base))
 for i, s in enumerate(base, 1):
-    print(f"С{i}: P = {s['P']/1e6} МПа, t = {s['t']} °C, фаза: {s['phase']}, "
-          f"e = {s['e']:.5f}, V = {s['V']:.5f}, L = {s['L']:.5f} моль")
-    print("    K =", np.round(s["K"], 4))
-    print("    x =", np.round(s["x"], 5), " y =", np.round(s["y"], 5))
+    out(f"С{i}: P = {s['P']/1e6} МПа, t = {s['t']} °C, фаза: {s['phase']}, "
+        f"e = {s['e']:.5f}, V = {s['V']:.5f}, L = {s['L']:.5f} моль")
+    out("    K =", np.round(s["K"], 4))
+    out("    x =", np.round(s["x"], 5), " y =", np.round(s["y"], 5))
 sb = res32["sum"]
-print(f"Газ С3: {sb['V_out']:.4f} моль/моль сырья, C3+ в газе {sb['yC3p']*100:.3f} %")
-print(f"Извлечение C3H8 в жидкость {sb['rec_C3']*100:.2f} %; "
-      f"CH4 в жидкость {sb['loss_CH4']*100:.2f} %")
+out(f"Газ С3: {sb['V_out']:.4f} моль/моль сырья, C3+ в газе {sb['yC3p']*100:.3f} %")
+out(f"Извлечение C3H8 в жидкость {sb['rec_C3']*100:.2f} %; "
+    f"CH4 в жидкость {sb['loss_CH4']*100:.2f} %")
 ```
 
 Результат работы программы:
@@ -963,6 +1010,7 @@ print(f"Извлечение C3H8 в жидкость {sb['rec_C3']*100:.2f} %; 
 
 ```python
 # Задача 3.2. Исследование влияния температуры в первом сепараторе (вариант 1)
+task("t32_study", "Задача 3.2 (исследование влияния t1)")
 t1_grid = np.round(np.arange(-30.0, 90.01, 1.0), 1)
 study = []
 for t1 in t1_grid:
@@ -978,15 +1026,15 @@ t1_best = t1_grid[ok][np.argmax(V_arr[ok])]
 t1_cold = t1_grid[np.argmax(V_arr)]       # глобальный максимум (с захолаживанием)
 res32.update(study=study, t1_best=t1_best, t1_cold=t1_cold,
              best=train([(BASE[0][0], t1_best), BASE[1], BASE[2]]))
-print(" t1,°C   e1      e2      e3     V(С3)   C3+,%  изв.C3H8,%  CH4 в жидк.,%")
+out(" t1,°C   e1      e2      e3     V(С3)   C3+,%  изв.C3H8,%  CH4 в жидк.,%")
 for s in study:
     if s["t1"] % 10 == 0 or s["t1"] in (t1_best, t1_cold):
         e = ["  —   " if np.isnan(v) else f"{v:.4f}" for v in s["e"]]
-        print(f"{s['t1']:6.1f}  {'  '.join(e)}  {s['V_out']:.4f}"
-              f"  {s['yC3p']*100:6.3f}"
-              f"  {s['rec_C3']*100:8.2f}  {s['loss_CH4']*100:8.2f}")
-print(f"Максимум газа при t1 >= 30 °C: t1 = {t1_best} °C, V = {V_arr[ok].max():.4f};"
-      f" глобальный максимум: t1 = {t1_cold} °C, V = {V_arr.max():.4f}")
+        out(f"{s['t1']:6.1f}  {'  '.join(e)}  {s['V_out']:.4f}"
+            f"  {s['yC3p']*100:6.3f}"
+            f"  {s['rec_C3']*100:8.2f}  {s['loss_CH4']*100:8.2f}")
+out(f"Максимум газа при t1 >= 30 °C: t1 = {t1_best} °C, V = {V_arr[ok].max():.4f};"
+    f" глобальный максимум: t1 = {t1_cold} °C, V = {V_arr.max():.4f}")
 
 fig, ax = plt.subplots(1, 3, figsize=(11, 3.4))
 for j, lab in enumerate(("С1", "С2", "С3")):
@@ -1086,6 +1134,7 @@ $$K_p = \frac{p_{NH_3}}{p_{N_2}^{0.5} \cdot p_{H_2}^{1.5}} = \frac{y_{NH_3}}{y_{
 
 ```python
 # Задача 4.1. Синтез аммиака: 1/2 N2 + 3/2 H2 <=> NH3 (N2 + 3 H2 <=> 2 NH3)
+task("t41", "Задача 4.1")
 Kp41, P41, T41 = 0.05, 220.0, 589.0          # Kp, 1/атм; P, атм; T, К
 n0_41 = np.array([1.1, 3.0, 0.2])            # N2, H2, NH3, моль/ч (1.1 : 3 : 0.2)
 nu41 = np.array([-0.5, -1.5, 1.0])           # стехиометрические коэффициенты
@@ -1107,13 +1156,13 @@ n41, y41 = comp41(xi41)
 res41 = dict(xi=xi41, n=n41, y=y41,
              X_N2=xi41 * 0.5 / n0_41[0], X_H2=xi41 * 1.5 / n0_41[1],
              check=y41[2] / (y41[0] ** 0.5 * y41[1] ** 1.5) / P41)
-print(f"xi = {xi41:.6f} моль/ч (xi_max = {xi_max:.4f})")
+out(f"xi = {xi41:.6f} моль/ч (xi_max = {xi_max:.4f})")
 for nm, a, b, c in zip(("N2", "H2", "NH3"), n0_41, n41, y41):
-    print(f"{nm:4s} начало {a:.4f}  конец {b:.4f} моль/ч  y = {c:.4f}")
-print(f"Всего {n0_41.sum():.4f} -> {n41.sum():.4f} моль/ч; "
-      f"проверка Kp = {res41['check']:.6f} 1/атм")
-print(f"Степень превращения: N2 {res41['X_N2']*100:.2f} %,"
-      f" H2 {res41['X_H2']*100:.2f} %")
+    out(f"{nm:4s} начало {a:.4f}  конец {b:.4f} моль/ч  y = {c:.4f}")
+out(f"Всего {n0_41.sum():.4f} -> {n41.sum():.4f} моль/ч; "
+    f"проверка Kp = {res41['check']:.6f} 1/атм")
+out(f"Степень превращения: N2 {res41['X_N2']*100:.2f} %,"
+    f" H2 {res41['X_H2']*100:.2f} %")
 ```
 
 Результат работы программы:
@@ -1173,6 +1222,7 @@ $$K_p = \frac{y_{C_2H_4} \cdot y_{H_2}}{y_{C_2H_6}} \cdot P = \frac{x^{2}}{(1 - 
 
 ```python
 # Задача 4.2а. C2H6 <=> C2H4 + H2 при 1100 К и 1 атм; K по справочным данным
+task("t42a", "Задача 4.2а")
 # ΔH°f и ΔG°f, кал/моль (справочник IFP, разделы E18 и E19); H2 — простое вещество, 0
 Tref = np.array([298.0, 400.0, 600.0, 800.0, 1000.0])
 dHf = {"C2H6": np.array([-20236, -21419, -23280, -24530, -25280.0]),
@@ -1201,10 +1251,10 @@ res42 = dict(dH_r=dH_r, dG_r=dG_r, K_ref=K_ref, K=K42, K_check=K42_check,
              dH1100=dH_lin(T42), x=x42, n=n42, y=y42,
              x_check=np.sqrt(K42_check / (K42_check + P42)))
 for T, a, b, k in zip(Tref, dH_r, dG_r, K_ref):
-    print(f"T = {T:6.0f} К  ΔH°r = {a/1000:7.2f}  ΔG°r = {b/1000:7.2f} кДж/моль"
-          f"  K = {k:.4e}")
-print(f"K(1100 К): Вант-Гофф {K42:.4f}; экстраполяция ΔG° {K42_check:.4f}")
-print(f"x = {x42:.5f}; y: C2H6 {y42[0]:.4f}, C2H4 {y42[1]:.4f}, H2 {y42[2]:.4f}")
+    out(f"T = {T:6.0f} К  ΔH°r = {a/1000:7.2f}  ΔG°r = {b/1000:7.2f} кДж/моль"
+        f"  K = {k:.4e}")
+out(f"K(1100 К): Вант-Гофф {K42:.4f}; экстраполяция ΔG° {K42_check:.4f}")
+out(f"x = {x42:.5f}; y: C2H6 {y42[0]:.4f}, C2H4 {y42[1]:.4f}, H2 {y42[2]:.4f}")
 
 fig, ax = plt.subplots(figsize=(6, 3.6))
 ax.plot(Tref, dG_r / 1000, "o-", label="ΔG°r по справочнику")
@@ -1272,6 +1322,7 @@ $$K_{p1} = \frac{y_{C_2H_4} \cdot y_{H_2}}{y_{C_2H_6}} \cdot P, \qquad K_{p2} = 
 
 ```python
 # Задача 4.2б. Две реакции при 1367 К: C2H6 <=> C2H4 + H2, C2H4 <=> C2H2 + H2
+task("t42b", "Задача 4.2б")
 K1, K2, P43 = 37.6, 0.769, 1.0
 
 
@@ -1291,10 +1342,10 @@ x43 = fsolve(eqs43, [0.9, 0.3], xtol=1e-14)
 n43, y43 = comp43(x43)
 res43 = dict(x=x43, n=n43, y=y43, resid=np.array(eqs43(x43)),
              K1c=y43[1] * y43[2] * P43 / y43[0], K2c=y43[3] * y43[2] * P43 / y43[1])
-print(f"x1 = {x43[0]:.5f}, x2 = {x43[1]:.5f}; невязки {res43['resid']}")
+out(f"x1 = {x43[0]:.5f}, x2 = {x43[1]:.5f}; невязки {res43['resid']}")
 for nm, a, b in zip(("C2H6", "C2H4", "H2", "C2H2"), n43, y43):
-    print(f"{nm:5s} {a:.5f} моль  y = {b:.4f}")
-print(f"Проверка: K1 = {res43['K1c']:.4f}, K2 = {res43['K2c']:.5f}")
+    out(f"{nm:5s} {a:.5f} моль  y = {b:.4f}")
+out(f"Проверка: K1 = {res43['K1c']:.4f}, K2 = {res43['K2c']:.5f}")
 ```
 
 Результат работы программы:
@@ -1351,6 +1402,7 @@ $$x_{D_1,i} \cdot D_1 + x_{B_1,i} \cdot B_1 + x_{D_2,i} \cdot D_2 + x_{B_2,i} \c
 
 ```python
 # Задача 5.1. Схема из трёх колонн: ксилол, стирол, толуол, бензол
+task("t51", "Задача 5.1")
 F = 1000.0                                           # моль/ч
 zF = np.array([0.15, 0.25, 0.40, 0.20])              # ксилол, стирол, толуол, бензол
 xD1 = np.array([0.07, 0.04, 0.54, 0.35])
@@ -1366,14 +1418,14 @@ comp = {"F": zF, "D": (xD1 * D1 + xB1 * B1) / D, "B": (xD2 * D2 + xB2 * B2) / B,
         "D1": xD1, "B1": xB1, "D2": xD2, "B2": xB2}
 res51 = dict(flows=flows, comp=comp, cond=np.linalg.cond(A), det=np.linalg.det(A),
              err=np.max(np.abs(A @ [D1, B1, D2, B2] - zF * F)))
-print(f"{'':8s}" + "".join(f"{k:>9s}" for k in flows))
+out(f"{'':8s}" + "".join(f"{k:>9s}" for k in flows))
 for i, nm in enumerate(("Ксилол", "Стирол", "Толуол", "Бензол")):
-    print(f"{nm:8s}" + "".join(f"{flows[k]*comp[k][i]:9.2f}" for k in flows))
-print(f"{'Всего':8s}" + "".join(f"{flows[k]:9.2f}" for k in flows))
+    out(f"{nm:8s}" + "".join(f"{flows[k]*comp[k][i]:9.2f}" for k in flows))
+out(f"{'Всего':8s}" + "".join(f"{flows[k]:9.2f}" for k in flows))
 for i, nm in enumerate(("Ксилол", "Стирол", "Толуол", "Бензол")):
-    print(f"{nm:8s}" + "".join(f"{comp[k][i]:9.4f}" for k in flows))
-print(f"Невязка баланса {res51['err']:.1e} моль/ч; "
-      f"число обусловленности {res51['cond']:.1f}")
+    out(f"{nm:8s}" + "".join(f"{comp[k][i]:9.4f}" for k in flows))
+out(f"Невязка баланса {res51['err']:.1e} моль/ч; "
+    f"число обусловленности {res51['cond']:.1f}")
 ```
 
 Результат работы программы:
@@ -1437,6 +1489,7 @@ print(f"Невязка баланса {res51['err']:.1e} моль/ч; "
 
 ```python
 # Задача 5.2. Процесс Toray: 2 C7H8 <=> C6H6 + C8H10 с рециклом толуола
+task("t52", "Задача 5.2")
 F1, X = 100.0, 0.58                  # свежий толуол, моль/ч; конверсия за проход
 # неизвестные: [T2, B2, X2, xi, T4, B4, T5, B5, X5, T7, B7, X7, T6, X6] (T — толуол,
 # B — бензол, X — ксилол; xi — число пробегов реакции, моль/ч)
@@ -1473,13 +1526,13 @@ T_out = S["4"][0] + S["6"][0]               # толуол, ушедший с п
 res52 = dict(S=S, xi=xi, conv_X=S["6"][2] / F1, conv_total=1 - T_out / F1,
              yield_B=S["4"][1] / F1,
              check_C=7 * F1 - (7 * T_out + 6 * S["4"][1] + 8 * S["6"][2]))
-print(f"{'':8s}" + "".join(f"{k:>9s}" for k in S))
+out(f"{'':8s}" + "".join(f"{k:>9s}" for k in S))
 for i, nm in enumerate(("Толуол", "Бензол", "Ксилол")):
-    print(f"{nm:8s}" + "".join(f"{S[k][i]:9.3f}" for k in S))
-print(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in S))
-print(f"xi = {xi:.4f} моль/ч; конверсия толуола в ксилол {res52['conv_X']*100:.2f} %;"
-      f" общая конверсия толуола {res52['conv_total']*100:.2f} %")
-print(f"Баланс атомов C: {res52['check_C']:.2e} моль/ч")
+    out(f"{nm:8s}" + "".join(f"{S[k][i]:9.3f}" for k in S))
+out(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in S))
+out(f"xi = {xi:.4f} моль/ч; конверсия толуола в ксилол {res52['conv_X']*100:.2f} %;"
+    f" общая конверсия толуола {res52['conv_total']*100:.2f} %")
+out(f"Баланс атомов C: {res52['check_C']:.2e} моль/ч")
 ```
 
 Результат работы программы:

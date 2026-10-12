@@ -18,9 +18,8 @@ import runner  # noqa: E402
 from text import n  # noqa: E402
 
 SECTIONS = {"m1": "# 1 ", "m2": "# 2 ", "m3": "# 3 ", "m5": "# 4 ", "m6": "# 5 "}
-CELLS = {"m1": ["c0", "t11", "t12", "t13", "t14"], "m2": ["c0", "t2_common", "t21", "t22"],
-         "m3": ["c0", "t3_common", "t31", "t32", "t32_study"], "m5": ["c0", "t41", "t42a", "t42b"],
-         "m6": ["c0", "t51", "t52"]}
+CELLS = {"m1": ["t11", "t12", "t13", "t14"], "m2": ["t21", "t22"],
+         "m3": ["t31", "t32", "t32_study"], "m5": ["t41", "t42a", "t42b"], "m6": ["t51", "t52"]}
 
 PRINT = """# Печать и оформление – модуль {mod}
 
@@ -72,7 +71,8 @@ def main():
             f"<!-- Сгенерировано report/module_docs.py из того же расчёта, что и отчёт. Не править вручную. -->\n\n"
             f"{body}\n{bib}", encoding="utf-8")
         shots = "\n".join(f"| {i} | `{cid}.png` | {by[cid].title} |" for i, cid in enumerate(CELLS[m], 1))
-        extra = ("## Скриншоты Colab для этого модуля\n\n| № | Имя файла | Ячейка |\n|---|---|---|\n" + shots +
+        extra = ("## Скриншоты Colab для этого модуля\n\nВсе снимаются в последней ячейке блокнота «РЕЗУЛЬТАТЫ ВСЕХ ЗАДАЧ»."
+                 "\n\n| № | Имя файла | Блок |\n|---|---|---|\n" + shots +
                  "\n\nПорядок съёмки – `colab/СКРИНШОТЫ.md`.")
         (SOL / m / "print.md").write_text(PRINT.format(mod=m.upper(), extra=extra), encoding="utf-8")
     write_defense(ns)

@@ -2,7 +2,10 @@
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))  # noqa
 from _common import *  # noqa
 
+import atexit; atexit.register(show_results)  # noqa: консольный запуск — вывод в конце
+
 # %% Задача 5.1. Схема из трёх колонн: ксилол, стирол, толуол, бензол
+task("t51", "Задача 5.1")
 F = 1000.0                                           # моль/ч
 zF = np.array([0.15, 0.25, 0.40, 0.20])              # ксилол, стирол, толуол, бензол
 xD1 = np.array([0.07, 0.04, 0.54, 0.35])
@@ -18,16 +21,17 @@ comp = {"F": zF, "D": (xD1 * D1 + xB1 * B1) / D, "B": (xD2 * D2 + xB2 * B2) / B,
         "D1": xD1, "B1": xB1, "D2": xD2, "B2": xB2}
 res51 = dict(flows=flows, comp=comp, cond=np.linalg.cond(A), det=np.linalg.det(A),
              err=np.max(np.abs(A @ [D1, B1, D2, B2] - zF * F)))
-print(f"{'':8s}" + "".join(f"{k:>9s}" for k in flows))
+out(f"{'':8s}" + "".join(f"{k:>9s}" for k in flows))
 for i, nm in enumerate(("Ксилол", "Стирол", "Толуол", "Бензол")):
-    print(f"{nm:8s}" + "".join(f"{flows[k]*comp[k][i]:9.2f}" for k in flows))
-print(f"{'Всего':8s}" + "".join(f"{flows[k]:9.2f}" for k in flows))
+    out(f"{nm:8s}" + "".join(f"{flows[k]*comp[k][i]:9.2f}" for k in flows))
+out(f"{'Всего':8s}" + "".join(f"{flows[k]:9.2f}" for k in flows))
 for i, nm in enumerate(("Ксилол", "Стирол", "Толуол", "Бензол")):
-    print(f"{nm:8s}" + "".join(f"{comp[k][i]:9.4f}" for k in flows))
-print(f"Невязка баланса {res51['err']:.1e} моль/ч; "
-      f"число обусловленности {res51['cond']:.1f}")
+    out(f"{nm:8s}" + "".join(f"{comp[k][i]:9.4f}" for k in flows))
+out(f"Невязка баланса {res51['err']:.1e} моль/ч; "
+    f"число обусловленности {res51['cond']:.1f}")
 
 # %% Задача 5.2. Процесс Toray: 2 C7H8 <=> C6H6 + C8H10 с рециклом толуола
+task("t52", "Задача 5.2")
 F1, X = 100.0, 0.58                  # свежий толуол, моль/ч; конверсия за проход
 # неизвестные: [T2, B2, X2, xi, T4, B4, T5, B5, X5, T7, B7, X7, T6, X6] (T — толуол,
 # B — бензол, X — ксилол; xi — число пробегов реакции, моль/ч)
@@ -64,10 +68,10 @@ T_out = S["4"][0] + S["6"][0]               # толуол, ушедший с п
 res52 = dict(S=S, xi=xi, conv_X=S["6"][2] / F1, conv_total=1 - T_out / F1,
              yield_B=S["4"][1] / F1,
              check_C=7 * F1 - (7 * T_out + 6 * S["4"][1] + 8 * S["6"][2]))
-print(f"{'':8s}" + "".join(f"{k:>9s}" for k in S))
+out(f"{'':8s}" + "".join(f"{k:>9s}" for k in S))
 for i, nm in enumerate(("Толуол", "Бензол", "Ксилол")):
-    print(f"{nm:8s}" + "".join(f"{S[k][i]:9.3f}" for k in S))
-print(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in S))
-print(f"xi = {xi:.4f} моль/ч; конверсия толуола в ксилол {res52['conv_X']*100:.2f} %;"
-      f" общая конверсия толуола {res52['conv_total']*100:.2f} %")
-print(f"Баланс атомов C: {res52['check_C']:.2e} моль/ч")
+    out(f"{nm:8s}" + "".join(f"{S[k][i]:9.3f}" for k in S))
+out(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in S))
+out(f"xi = {xi:.4f} моль/ч; конверсия толуола в ксилол {res52['conv_X']*100:.2f} %;"
+    f" общая конверсия толуола {res52['conv_total']*100:.2f} %")
+out(f"Баланс атомов C: {res52['check_C']:.2e} моль/ч")

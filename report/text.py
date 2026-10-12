@@ -66,13 +66,15 @@ class Counter:
 
 
 def program(cell):
-    """Код ячейки и результат её работы: скриншоты Colab, если они есть, иначе текст."""
+    """Код ячейки (текстом) и результат её работы: скриншот из Colab, если он есть, иначе текст."""
+    code = f"Программа (ячейка Google Colab):\n\n```python\n# {cell.title}\n{cell.code}\n```\n"
+    if not cell.out:
+        return code + "\n"
     shots = sorted(SCREENS.glob(f"{cell.cid}.png")) + sorted(SCREENS.glob(f"{cell.cid}_*.png"))
     if shots:
         imgs = "\n\n".join(f"![](screens/{p.name}){{width=16.5cm}}" for p in shots)
-        return f"Программа (ячейка Google Colab) и результат её работы:\n\n{imgs}\n\n"
-    out = f"\n\nРезультат работы программы:\n\n```text\n{cell.out}\n```\n" if cell.out else ""
-    return f"Программа (ячейка Google Colab):\n\n```python\n# {cell.title}\n{cell.code}\n```{out}\n"
+        return code + f"\nРезультат работы программы (скриншот Google Colab):\n\n{imgs}\n\n"
+    return code + f"\nРезультат работы программы:\n\n```text\n{cell.out}\n```\n\n"
 
 
 def _vis(s):
