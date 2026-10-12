@@ -106,8 +106,9 @@ res32 = dict(base=base, sum=summary(base))
 for i, s in enumerate(base, 1):
     out(f"С{i}: P = {s['P']/1e6} МПа, t = {s['t']} °C, фаза: {s['phase']}, "
         f"e = {s['e']:.5f}, V = {s['V']:.5f}, L = {s['L']:.5f} моль")
-    out("    K =", np.round(s["K"], 4))
-    out("    x =", np.round(s["x"], 5), " y =", np.round(s["y"], 5))
+    out("    K =", " ".join(f"{v:.4f}" for v in s["K"]))
+    out("    x =", " ".join(f"{v:.5f}" for v in s["x"]))
+    out("    y =", " ".join(f"{v:.5f}" for v in s["y"]))
 sb = res32["sum"]
 out(f"Газ С3: {sb['V_out']:.4f} моль/моль сырья, C3+ в газе {sb['yC3p']*100:.3f} %")
 out(f"Извлечение C3H8 в жидкость {sb['rec_C3']*100:.2f} %; "

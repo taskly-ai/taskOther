@@ -65,14 +65,23 @@ class Counter:
         return f"\n![Рисунок {self.fig} – {caption}](fig/{name}.png){{width={width}}}\n\n"
 
 
+CM_PER_PX = 16.5 / 800      # единый масштаб скриншотов: одинаковый размер шрифта (требование 3)
+
+
+def shot_width(path):
+    from PIL import Image
+    w = Image.open(path).size[0]
+    return f"{min(16.5, w * CM_PER_PX):.2f}"
+
+
 def program(cell):
     """Код ячейки (текстом) и результат её работы: скриншот из Colab, если он есть, иначе текст."""
     code = f"Программа (ячейка Google Colab):\n\n```python\n# {cell.title}\n{cell.code}\n```\n"
     if not cell.out:
         return code + "\n"
-    shots = sorted(SCREENS.glob(f"{cell.cid}.png")) + sorted(SCREENS.glob(f"{cell.cid}_*.png"))
+    shots = sorted(SCREENS.glob(f"{cell.cid}.png")) + sorted(SCREENS.glob(f"{cell.cid}_[0-9].png"))
     if shots:
-        imgs = "\n\n".join(f"![](screens/{p.name}){{width=16.5cm}}" for p in shots)
+        imgs = "\n\n".join(f"![](screens/{p.name}){{width={shot_width(p)}cm}}" for p in shots)
         return code + f"\nРезультат работы программы (скриншот Google Colab):\n\n{imgs}\n\n"
     return code + f"\nРезультат работы программы:\n\n```text\n{cell.out}\n```\n\n"
 
