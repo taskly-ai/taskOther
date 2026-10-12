@@ -16,7 +16,7 @@ def comp41(xi):
     return n, n / n.sum()
 
 
-def eq41(xi):                                # Kp·P = yNH3 / (yN2^0,5 · yH2^1,5)
+def eq41(xi):                                # Kp·P = yNH3 / (yN2^0.5 · yH2^1.5)
     n, y = comp41(xi)
     return y[2] / (y[0] ** 0.5 * y[1] ** 1.5) - Kp41 * P41
 

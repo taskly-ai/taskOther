@@ -38,29 +38,29 @@ def r2(y, y_calc):
 
 
 def style_axes(ax):
-    """Сетка на графике (десятичный разделитель — точка, как во всём отчёте)."""
+    """Сетка на графике."""
     ax.grid(alpha=0.3)
 
 
-FIG_DIR = None      # при сборке отчёта сюда записывается папка для рисунков
-RESULTS = {}        # результаты задач: выводятся вместе в последней ячейке блокнота
-FIGS = []           # графики задач: выводятся в самой последней ячейке
+FIG_DIR = None      # папка для сохранения рисунков (None - рисунки выводятся в конце)
+RESULTS = {}        # результаты расчёта по задачам
+FIGS = []           # построенные графики
 _CUR = [None]
 
 
 def task(key, title):
-    """Начать задачу: дальнейший вывод out() относится к ней."""
+    """Начало новой задачи."""
     _CUR[0] = key
     RESULTS[key] = {"title": title, "lines": []}
 
 
 def out(*args, sep=" "):
-    """Запомнить строку результата текущей задачи (вместо print)."""
+    """Запись строки результата текущей задачи."""
     RESULTS[_CUR[0]]["lines"].append(sep.join(str(a) for a in args))
 
 
 def show(fig, name):
-    """Сохранить рисунок: в Colab он выводится в конце, при сборке отчёта — в PNG."""
+    """Сохранение рисунка в файл или отложенный вывод."""
     fig.tight_layout()
     if FIG_DIR is not None:
         fig.savefig(f"{FIG_DIR}/{name}.png")
@@ -70,25 +70,20 @@ def show(fig, name):
 
 
 def show_results():
-    """Все результаты подряд; каждый блок — один скриншот (имя файла указано в заголовке)."""
+    """Вывод результатов всех задач."""
     for key, r in RESULTS.items():
         print("=" * 78)
-        print(f"{r['title']}   ->  скриншот: {key}.png")
+        print(r["title"])
         print("=" * 78)
         print("\n".join(r["lines"]))
         print()
 
 
 def show_figures():
-    """Все графики (в отчёте они уже вставлены как рисунки; скриншоты не нужны)."""
-    try:
-        from IPython.display import display
-    except ImportError:
-        display = None
+    """Вывод всех графиков."""
+    from IPython.display import display
     for name, fig in FIGS:
-        print(name)
-        if display:
-            display(fig)
+        display(fig)
 
 
 plt.rcParams.update({"figure.dpi": 110, "font.size": 10, "savefig.dpi": 200})
@@ -263,7 +258,7 @@ def model_exp(x, a, k, c):                  # альтернатива: эксп
     return a * np.exp(-k * x) + c
 
 
-# Ограничение модели: ln(x/b) > 0 при всех x, т.е. 0 < b < x_min = 0,263 кг/с.
+# Ограничение модели: ln(x/b) > 0 при всех x, т.е. 0 < b < x_min = 0.263 кг/с.
 # Линеаризация y^(-3/2) = a^(-3/2)·(ln x − ln b) даёт b > x_min (проверка ниже),
 # поэтому параметры ищутся нелинейным МНК с границами.
 k_lin, m_lin = np.polyfit(np.log(x12), y12 ** -1.5, 1)
@@ -774,7 +769,7 @@ $$f_{ТНК}(T) = \sum_{i} K_i(T, P) \cdot z_i - 1 = 0, \qquad f_{ТКК}(T) = \
 task("t31", "Задача 3.1")
 names31 = ["CH4", "C2H6", "C3H8", "n-C4"]
 z31 = np.array([0.20, 0.25, 0.35, 0.20])
-P31 = 14 * ATM                                   # 14 атм = 1,4186 МПа = 205,7 psia
+P31 = 14 * ATM                                   # 14 атм = 1.4186 МПа = 205.7 psia
 f_bub = lambda T: np.sum(K_values(names31, T, P31) * z31) - 1      # Σ Ki·xi = 1
 f_dew = lambda T: np.sum(z31 / K_values(names31, T, P31)) - 1      # Σ yi/Ki = 1
 Tb = brentq(f_bub, 100.0, 500.0)
@@ -1073,7 +1068,7 @@ def comp41(xi):
     return n, n / n.sum()
 
 
-def eq41(xi):                                # Kp·P = yNH3 / (yN2^0,5 · yH2^1,5)
+def eq41(xi):                                # Kp·P = yNH3 / (yN2^0.5 · yH2^1.5)
     n, y = comp41(xi)
     return y[2] / (y[0] ** 0.5 * y[1] ** 1.5) - Kp41 * P41
 
@@ -1392,14 +1387,14 @@ iT2, iB2, iX2, ixi, iT4, iB4, iT5, iB5, iX5, iT7, iB7, iX7, iT6, iX6 = range(14)
 eqs = [({iT2: 1, iT7: -1}, F1),                 # смеситель: T2 = F1 + T7
        ({iB2: 1, iB7: -1}, 0), ({iX2: 1, iX7: -1}, 0),
        ({ixi: 1, iT2: -X / 2}, 0),              # реактор: xi = X·T2/2
-       ({iB4: 1, iB2: -0.995, ixi: -0.995}, 0),  # S1: 99,5 % бензола потока 3
-       ({iT4: 1, iT2: -0.001 * (1 - X)}, 0),     # S1: 0,1 % толуола потока 3
+       ({iB4: 1, iB2: -0.995, ixi: -0.995}, 0),  # S1: 99.5 % бензола потока 3
+       ({iT4: 1, iT2: -0.001 * (1 - X)}, 0),     # S1: 0.1 % толуола потока 3
        ({iT5: 1, iT2: -(1 - X), iT4: 1}, 0),    # поток 5 = поток 3 − поток 4
        ({iB5: 1, iB2: -1, ixi: -1, iB4: 1}, 0),
        ({iX5: 1, iX2: -1, ixi: -1}, 0),          # ксилол в поток 4 не уходит
-       ({iT7: 1, iT5: -0.995}, 0),              # S2: 99,5 % толуола -> рецикл
+       ({iT7: 1, iT5: -0.995}, 0),              # S2: 99.5 % толуола -> рецикл
        ({iB7: 1, iB5: -1}, 0),                  # S2: весь бензол -> рецикл
-       ({iX7: 1, iX5: -0.001}, 0),              # S2: 0,1 % ксилола -> рецикл
+       ({iX7: 1, iX5: -0.001}, 0),              # S2: 0.1 % ксилола -> рецикл
        ({iT6: 1, iT5: -1, iT7: 1}, 0),
        ({iX6: 1, iX5: -1, iX7: 1}, 0)]
 for r_, (coef, b) in enumerate(eqs):

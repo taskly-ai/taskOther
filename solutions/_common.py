@@ -21,29 +21,29 @@ def r2(y, y_calc):
 
 
 def style_axes(ax):
-    """Сетка на графике (десятичный разделитель — точка, как во всём отчёте)."""
+    """Сетка на графике."""
     ax.grid(alpha=0.3)
 
 
-FIG_DIR = None      # при сборке отчёта сюда записывается папка для рисунков
-RESULTS = {}        # результаты задач: выводятся вместе в последней ячейке блокнота
-FIGS = []           # графики задач: выводятся в самой последней ячейке
+FIG_DIR = None      # папка для сохранения рисунков (None - рисунки выводятся в конце)
+RESULTS = {}        # результаты расчёта по задачам
+FIGS = []           # построенные графики
 _CUR = [None]
 
 
 def task(key, title):
-    """Начать задачу: дальнейший вывод out() относится к ней."""
+    """Начало новой задачи."""
     _CUR[0] = key
     RESULTS[key] = {"title": title, "lines": []}
 
 
 def out(*args, sep=" "):
-    """Запомнить строку результата текущей задачи (вместо print)."""
+    """Запись строки результата текущей задачи."""
     RESULTS[_CUR[0]]["lines"].append(sep.join(str(a) for a in args))
 
 
 def show(fig, name):
-    """Сохранить рисунок: в Colab он выводится в конце, при сборке отчёта — в PNG."""
+    """Сохранение рисунка в файл или отложенный вывод."""
     fig.tight_layout()
     if FIG_DIR is not None:
         fig.savefig(f"{FIG_DIR}/{name}.png")
@@ -53,25 +53,20 @@ def show(fig, name):
 
 
 def show_results():
-    """Все результаты подряд; каждый блок — один скриншот (имя файла указано в заголовке)."""
+    """Вывод результатов всех задач."""
     for key, r in RESULTS.items():
         print("=" * 78)
-        print(f"{r['title']}   ->  скриншот: {key}.png")
+        print(r["title"])
         print("=" * 78)
         print("\n".join(r["lines"]))
         print()
 
 
 def show_figures():
-    """Все графики (в отчёте они уже вставлены как рисунки; скриншоты не нужны)."""
-    try:
-        from IPython.display import display
-    except ImportError:
-        display = None
+    """Вывод всех графиков."""
+    from IPython.display import display
     for name, fig in FIGS:
-        print(name)
-        if display:
-            display(fig)
+        display(fig)
 
 
 plt.rcParams.update({"figure.dpi": 110, "font.size": 10, "savefig.dpi": 200})

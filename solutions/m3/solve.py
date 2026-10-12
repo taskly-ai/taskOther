@@ -29,7 +29,7 @@ def K_values(names, T, P):
 task("t31", "Задача 3.1")
 names31 = ["CH4", "C2H6", "C3H8", "n-C4"]
 z31 = np.array([0.20, 0.25, 0.35, 0.20])
-P31 = 14 * ATM                                   # 14 атм = 1,4186 МПа = 205,7 psia
+P31 = 14 * ATM                                   # 14 атм = 1.4186 МПа = 205.7 psia
 f_bub = lambda T: np.sum(K_values(names31, T, P31) * z31) - 1      # Σ Ki·xi = 1
 f_dew = lambda T: np.sum(z31 / K_values(names31, T, P31)) - 1      # Σ yi/Ki = 1
 Tb = brentq(f_bub, 100.0, 500.0)
