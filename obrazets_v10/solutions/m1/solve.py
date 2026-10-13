@@ -3,6 +3,7 @@ import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().par
 from _common import *  # noqa
 
 # %% Задача 1.1. Теплоёмкость пропана: полином 5-й степени по τ = T/1000
+task("t11", "Задача 1.1")
 T = np.array([50, 100, 150, 200, 273.15, 300, 400, 500, 600, 700,
               800, 900, 1000, 1100, 1200, 1300])
 C = np.array([34.16, 41.3, 48.79, 56.07, 68.74, 73.93, 94.01, 112.59,
@@ -22,11 +23,11 @@ I_trap = float(np.sum((C[1:] + C[:-1]) / 2 * np.diff(T)))   # трапеции �
 I_simp = float(integrate.simpson(C, x=T))                    # Симпсон (неравном. сетка)
 Cm = {k: v / (T1 - T0) for k, v in (("модель", I_mod), ("трапеции", I_trap), ("Симпсон", I_simp))}
 for j, cj in enumerate(c):
-    print(f"c{j} = {cj:10.4f} Дж/(моль·К)")
-print(f"cond(V): по τ = {cond_tau:.3e}, по T = {cond_T:.3e}")
-print(f"R2 = {q11['R2']:.6f}, s = {q11['s']:.3f} Дж/(моль·К), max δ = {q11['dmax']:.2f} %")
+    report(f"c{j} = {cj:10.4f} Дж/(моль·К)")
+report(f"cond(V): по τ = {cond_tau:.3e}, по T = {cond_T:.3e}")
+report(f"R2 = {q11['R2']:.6f}, s = {q11['s']:.3f} Дж/(моль·К), max δ = {q11['dmax']:.2f} %")
 for k, v in Cm.items():
-    print(f"<C>({k:9s}) = {v:.3f} Дж/(моль·К)")
+    report(f"<C>({k:9s}) = {v:.3f} Дж/(моль·К)")
 res11 = dict(c=c, q=q11, I=dict(модель=I_mod, трапеции=I_trap, Симпсон=I_simp), Cm=Cm,
              cond_tau=cond_tau, cond_T=cond_T, e=C - C_mod, T=T.copy(), C=C.copy())
 
@@ -41,6 +42,7 @@ ax[1].set(xlabel="T, К", ylabel="Остаток, Дж/(моль∙К)")
 draw(fig, "o11")
 
 # %% Задача 1.2. Модель y = a·(ln(x/b))^(-2/3): least_squares и две альтернативы
+task("t12", "Задача 1.2")
 x = np.array([0.263, 0.294, 0.321, 0.367, 0.429, 0.608, 1.33, 1.36])
 y = np.array([0.34, 0.32, 0.24, 0.20, 0.16, 0.11, 0.06, 0.04])
 f_given = lambda p, x: p[0] * np.log(x / p[1]) ** (-2 / 3)
@@ -56,9 +58,9 @@ q_hyp = quality(y, Ah / x + Bh, 2)
 slope, ln_K = np.polyfit(np.log(x), np.log(y), 1)
 K_p, n_p = np.exp(ln_K), -slope
 q_pow = quality(y, K_p * x ** (-n_p), 2)
-print(f"заданная:  a = {a:.4f}, b = {b:.4f} кг/с; R2 = {q_given['R2']:.4f}, SSE = {q_given['SSE']:.5f}")
-print(f"гипербола: A = {Ah:.4f} кг/с, B = {Bh:.4f}; R2 = {q_hyp['R2']:.4f}, SSE = {q_hyp['SSE']:.5f}")
-print(f"степенная: K = {K_p:.4f}, n = {n_p:.4f}; R2 = {q_pow['R2']:.4f}, SSE = {q_pow['SSE']:.5f}")
+report(f"заданная:  a = {a:.4f}, b = {b:.4f} кг/с; R2 = {q_given['R2']:.4f}, SSE = {q_given['SSE']:.5f}")
+report(f"гипербола: A = {Ah:.4f} кг/с, B = {Bh:.4f}; R2 = {q_hyp['R2']:.4f}, SSE = {q_hyp['SSE']:.5f}")
+report(f"степенная: K = {K_p:.4f}, n = {n_p:.4f}; R2 = {q_pow['R2']:.4f}, SSE = {q_pow['SSE']:.5f}")
 res12 = dict(a=a, b=b, q=q_given, hyp=(Ah, Bh, q_hyp), pow=(K_p, n_p, q_pow),
              y_given=f_given(sol.x, x), x=x.copy(), y=y.copy())
 
@@ -73,6 +75,7 @@ ax.legend()
 draw(fig, "o12")
 
 # %% Задача 1.3. Аррениус: линеаризация, МНК по относительным ошибкам, два участка
+task("t13", "Задача 1.3")
 t = np.arange(100, 501, 50.0)
 k = np.array([0.10, 0.56, 1.76, 3.54, 9.53, 15.98, 25.04, 60.74, 143.60])
 TK = t + 273.15
@@ -88,11 +91,11 @@ seg = {}
 for name, msk in (("100–300 °C", t <= 300), ("300–500 °C", t >= 300)):
     (l_A, E), *_ = np.linalg.lstsq(X[msk], np.log(k[msk]), rcond=None)
     seg[name] = (E, np.exp(l_A), quality(np.log(k[msk]), X[msk] @ [l_A, E], 2)["R2"])
-print(f"линеаризация: Ea = {Ea/1000:.2f} кДж/моль, A = {np.exp(lnA):.4e} 1/с, R2(ln k) = {q_ln['R2']:.4f}")
-print(f"МНК по отн. ошибкам: Ea = {Ea_r/1000:.2f} кДж/моль, A = {np.exp(lnA_r):.4e} 1/с, "
-      f"max δ = {q_rel['dmax']:.1f} %")
+report(f"линеаризация: Ea = {Ea/1000:.2f} кДж/моль, A = {np.exp(lnA):.4e} 1/с, R2(ln k) = {q_ln['R2']:.4f}")
+report(f"МНК по отн. ошибкам: Ea = {Ea_r/1000:.2f} кДж/моль, A = {np.exp(lnA_r):.4e} 1/с, "
+       f"max δ = {q_rel['dmax']:.1f} %")
 for name, (E, A_, r2_) in seg.items():
-    print(f"участок {name}: Ea = {E/1000:.2f} кДж/моль, A = {A_:.4e} 1/с, R2(ln k) = {r2_:.4f}")
+    report(f"участок {name}: Ea = {E/1000:.2f} кДж/моль, A = {A_:.4e} 1/с, R2(ln k) = {r2_:.4f}")
 res13 = dict(Ea=Ea, A=np.exp(lnA), q_ln=q_ln, Ea_r=Ea_r, A_r=np.exp(lnA_r), q_rel=q_rel, seg=seg,
              e_ln=np.log(k) - X @ [lnA, Ea], t=t.copy(), k=k.copy())
 
@@ -107,6 +110,7 @@ ax.legend()
 draw(fig, "o13")
 
 # %% Задача 1.4. Вязкость глицерина: полиномы по z = (T - 330)/60, F-критерий, ln μ(1/T)
+task("t14", "Задача 1.4")
 from scipy import stats
 Tv = np.array([270, 280, 290, 300, 310, 320, 330, 350, 370, 390.0])   # при 250, 260 К данных нет
 mu = np.array([12.00, 8.500, 6.050, 4.250, 3.500, 2.600, 2.000, 1.200, 0.730, 0.450])
@@ -125,11 +129,12 @@ W = np.column_stack([np.ones_like(Tv), 1 / Tv, 1 / Tv ** 2])
 pa, *_ = np.linalg.lstsq(W, np.log(mu), rcond=None)
 q_and = quality(mu, np.exp(W @ pa), 3)
 for d, f_ in fits.items():
+    report(f"степень {d}: b = {np.round(f_['b'], 4)}")
     extra = f"; F = {f_['F']:.1f} (Fкр = {f_['Fcr']:.2f})" if "F" in f_ else ""
-    print(f"степень {d}: b = {np.round(f_['b'], 4)}; R2 = {f_['q']['R2']:.4f}, "
-          f"SSE = {f_['q']['SSE']:.3f}, max δ = {f_['q']['dmax']:.1f} %{extra}")
-print(f"ln mu = {pa[0]:.4f} + {pa[1]:.1f}/T + ({pa[2]:.4e})/T^2; R2 = {q_and['R2']:.5f}, "
-      f"max δ = {q_and['dmax']:.2f} %")
+    report(f"   R2 = {f_['q']['R2']:.4f}, SSE = {f_['q']['SSE']:.3f}, "
+           f"max δ = {f_['q']['dmax']:.1f} %{extra}")
+report(f"ln mu = {pa[0]:.4f} + {pa[1]:.1f}/T + ({pa[2]:.4e})/T^2; R2 = {q_and['R2']:.5f}, "
+       f"max δ = {q_and['dmax']:.2f} %")
 res14 = dict(fits=fits, lnmu=(pa, q_and), T=Tv.copy(), mu=mu.copy())
 
 fig, ax = plt.subplots(figsize=(6, 3.6))

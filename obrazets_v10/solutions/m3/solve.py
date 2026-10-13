@@ -40,6 +40,7 @@ def rr_newton(z, K, tol=1e-13):
 
 
 # %% Задача 3.1. ТНК и ТКК смеси этилен 20 %, пропан 30 %, изобутан 30 %, н-бутан 20 % при 14 атм
+task("t31", "Задача 3.1")
 comp31 = ["C2H4", "C3H8", "iC4", "nC4"]
 z31 = np.array([0.20, 0.30, 0.30, 0.20])
 
@@ -54,9 +55,9 @@ def bubble_dew(P_atm):
 
 Tb, Td = bubble_dew(14.0)
 Kb, Kd = Kval(comp31, Tb, 14 * ATM), Kval(comp31, Td, 14 * ATM)
-print(f"P = 14 атм = {14*ATM/1e6:.4f} МПа = {14*ATM/PSI:.2f} psia")
-print(f"ТНК = {Tb:.2f} К ({Tb-273.15:.2f} °C), ТКК = {Td:.2f} К ({Td-273.15:.2f} °C)")
-print("y пузырька:", np.round(Kb * z31, 4), " x капли:", np.round(z31 / Kd, 4))
+report(f"P = 14 атм = {14*ATM/1e6:.4f} МПа = {14*ATM/PSI:.2f} psia")
+report(f"ТНК = {Tb:.2f} К ({Tb-273.15:.2f} °C), ТКК = {Td:.2f} К ({Td-273.15:.2f} °C)")
+report("y пузырька:", np.round(Kb * z31, 4), " x капли:", np.round(z31 / Kd, 4))
 Pgrid = np.arange(4.0, 31.0, 1.0)
 curve = np.array([bubble_dew(p) for p in Pgrid])
 res31 = dict(Tb=Tb, Td=Td, Kb=Kb, Kd=Kd, Pgrid=Pgrid, curve=curve)
@@ -70,6 +71,7 @@ ax.legend()
 draw(fig, "o31")
 
 # %% Задача 3.2. Сепараторы: базовый режим (С1 9.8 МПа/40.8 °C, С2 8.7/12.8, С3 8.7/-40.8)
+task("t32", "Задача 3.2 (базовый режим)")
 comp32 = ["CH4", "C2H6", "C3H8", "iC4", "nC4", "nC5"]
 zF = np.array([0.72211, 0.03608, 0.22363, 0.00646, 0.00466, 0.00706])
 STAGE = {"С1": (9.8e6, 40.8), "С2": (8.7e6, 12.8), "С3": (8.7e6, -40.8)}
@@ -77,7 +79,7 @@ STAGE = {"С1": (9.8e6, 40.8), "С2": (8.7e6, 12.8), "С3": (8.7e6, -40.8)}
 
 def run_block(stages, F=100.0):
     """Цепочка сепараторов на 100 моль/ч сырья; возвращает ступени и покомпонентные потоки."""
-    feed, out, liq = F * zF, [], np.zeros(len(zF))
+    feed, result, liq = F * zF, [], np.zeros(len(zF))
     for s in stages:
         P, t = STAGE[s]
         Fs = feed.sum()
@@ -87,22 +89,23 @@ def run_block(stages, F=100.0):
         x = zs / (1 + e * (K - 1))
         yv = K * x if e > 0 else np.zeros_like(zs)
         x = x if e < 1 else np.zeros_like(zs)
-        out.append(dict(name=s, e=e, it=it, K=K, x=x, y=yv, F=Fs))
+        result.append(dict(name=s, e=e, it=it, K=K, x=x, y=yv, F=Fs))
         liq += Fs * (1 - e) * x
         feed = Fs * e * yv
-    return out, feed, liq                        # feed – товарный газ, моль/ч по компонентам
+    return result, feed, liq                        # feed – товарный газ, моль/ч по компонентам
 
 
 base, gas, liq = run_block(["С1", "С2", "С3"])
 for s in base:
-    print(f"{s['name']}: e = {s['e']:.5f} ({s['it']} итераций Ньютона), питание {s['F']:.3f} моль/ч")
-    print("   x:", " ".join(f"{v:.5f}" for v in s["x"]))
-    print("   y:", " ".join(f"{v:.5f}" for v in s["y"]))
-print(f"Газ: {gas.sum():.3f} моль/ч; жидкость: {liq.sum():.3f} моль/ч; "
-      f"баланс: {100 - gas.sum() - liq.sum():.1e}")
+    report(f"{s['name']}: e = {s['e']:.5f} ({s['it']} итераций Ньютона), питание {s['F']:.3f} моль/ч")
+    report("   x:", " ".join(f"{v:.5f}" for v in s["x"]))
+    report("   y:", " ".join(f"{v:.5f}" for v in s["y"]))
+report(f"Газ: {gas.sum():.3f} моль/ч; жидкость: {liq.sum():.3f} моль/ч; "
+       f"баланс: {100 - gas.sum() - liq.sum():.1e}")
 res32 = dict(base=base, gas=gas, liq=liq)
 
 # %% Задача 3.2. Исследование: влияние количества сепараторов (1, 2 или 3)
+task("t32_study", "Задача 3.2 (исследование числа сепараторов)")
 SCHEMES = [("1", ["С1"]), ("2", ["С1", "С2"]), ("3", ["С1", "С2", "С3"]),     # ряд А: С1 -> ...
            ("1", ["С3"]), ("2", ["С2", "С3"]), ("3", ["С1", "С2", "С3"])]     # ряд Б: ... -> С3
 study = []
@@ -113,10 +116,10 @@ for nst, st in SCHEMES:
                       CH4_gas=g[0] / (100 * zF[0]) * 100,                     # извлечение метана в газ, %
                       C3p_gas=g[2:].sum() / G * 100 if G > 0 else np.nan,     # C3+ в газе, %
                       C3_liq=l[2] / (100 * zF[2]) * 100))                     # пропан в жидкость, %
-print(f"{'схема':16s} {'газ, моль/ч':>11s} {'CH4 в газ, %':>13s} {'C3+ в газе, %':>14s} {'C3H8 в жидк., %':>16s}")
+report(f"{'схема':16s} {'газ, моль/ч':>11s} {'CH4 в газ, %':>13s} {'C3+ в газе, %':>14s} {'C3H8 в жидк., %':>16s}")
 for r_ in study:
     c3 = "—" if np.isnan(r_["C3p_gas"]) else f"{r_['C3p_gas']:.3f}"
-    print(f"{r_['n']}: {r_['stages']:13s} {r_['G']:11.3f} {r_['CH4_gas']:13.2f} {c3:>14s} {r_['C3_liq']:16.2f}")
+    report(f"{r_['n']}: {r_['stages']:13s} {r_['G']:11.3f} {r_['CH4_gas']:13.2f} {c3:>14s} {r_['C3_liq']:16.2f}")
 res32["study"] = study
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.5))

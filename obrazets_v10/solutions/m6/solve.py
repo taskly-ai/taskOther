@@ -3,6 +3,7 @@ import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().par
 from _common import *  # noqa
 
 # %% Задача 5.1. Три колонны: метод Гаусса с выбором главного элемента (собственная реализация)
+task("t51", "Задача 5.1")
 def gauss(A, b):
     A, b = np.array(A, float), np.array(b, float)
     n = len(b)
@@ -31,14 +32,15 @@ xD, xB = (D1 * xD1 + B1 * xB1) / D, (D2 * xD2 + B2 * xB2) / B
 rec1 = D * xD / (F * xF) * 100
 streams = {"F": (F, xF), "D": (D, xD), "B": (B, xB), "D1": (D1, xD1), "B1": (B1, xB1),
            "D2": (D2, xD2), "B2": (B2, xB2)}
-print("поток   расход, моль/ч   " + "  ".join(f"{c:>7s}" for c in comps))
+report("поток   расход, моль/ч   " + "  ".join(f"{c:>7s}" for c in comps))
 for k, (Fl, xx) in streams.items():
-    print(f"{k:5s} {Fl:12.2f}       " + "  ".join(f"{v:7.4f}" for v in xx))
-print("извлечение в D колонны №1, %:", "  ".join(f"{c} {v:.1f}" for c, v in zip(comps, rec1)))
-print(f"проверка общего баланса: F - (D1 + B1 + D2 + B2) = {F - D1 - B1 - D2 - B2:.2e} моль/ч")
+    report(f"{k:5s} {Fl:12.2f}       " + "  ".join(f"{v:7.4f}" for v in xx))
+report("извлечение в D колонны №1, %:", "  ".join(f"{c} {v:.1f}" for c, v in zip(comps, rec1)))
+report(f"проверка общего баланса: F - (D1 + B1 + D2 + B2) = {F - D1 - B1 - D2 - B2:.2e} моль/ч")
 res51 = dict(streams=streams, rec1=rec1)
 
 # %% Задача 5.2. Процесс Toray: последовательный модульный расчёт, разрыв по рециклу (поток 7)
+task("t52", "Задача 5.2")
 F1, conv = 100.0, 0.58          # свежий толуол, моль/ч; конверсия толуола за проход
 # компоненты: [толуол, бензол, ксилол]
 
@@ -80,17 +82,17 @@ def solve_recycle(method, tol=1e-10, maxit=500):
 sol = {}
 for meth in ("простая итерация", "Вегстейн"):
     sol[meth] = solve_recycle(meth)
-    print(f"{meth}: {len(sol[meth][1])} итераций")
+    report(f"{meth}: {len(sol[meth][1])} итераций")
 S = sol["Вегстейн"][0]
-print(f"{'':8s}" + "".join(f"{k:>9s}" for k in ("1", "2", "R", "3", "4", "5", "6", "7")))
+report(f"{'':8s}" + "".join(f"{k:>9s}" for k in ("1", "2", "R", "3", "4", "5", "6", "7")))
 for i, c in enumerate(("Толуол", "Бензол", "Ксилол")):
-    print(f"{c:8s}" + "".join(f"{S[k][i]:9.3f}" for k in ("s1", "s2", "R", "s3", "s4", "s5", "s6", "s7")))
-print(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in ("s1", "s2", "R", "s3", "s4", "s5", "s6", "s7")))
+    report(f"{c:8s}" + "".join(f"{S[k][i]:9.3f}" for k in ("s1", "s2", "R", "s3", "s4", "s5", "s6", "s7")))
+report(f"{'Всего':8s}" + "".join(f"{S[k].sum():9.3f}" for k in ("s1", "s2", "R", "s3", "s4", "s5", "s6", "s7")))
 X_xyl = S["s6"][2] / F1
 X_tot = 1 - (S["s4"][0] + S["s6"][0]) / F1
 Y_benz = S["s4"][1] / F1                                 # выход бензола на свежий толуол
-print(f"конверсия толуола в ксилол {X_xyl*100:.2f} %, общая конверсия толуола {X_tot*100:.2f} %, "
-      f"выход бензола {Y_benz*100:.2f} % (моль на моль свежего толуола)")
+report(f"конверсия толуола в ксилол {X_xyl*100:.2f} %, общая конверсия толуола {X_tot*100:.2f} %")
+report(f"выход бензола {Y_benz*100:.2f} % (моль на моль свежего толуола)")
 res52 = dict(S=S, hist={m: h for m, (_, h) in sol.items()}, X_xyl=X_xyl, X_tot=X_tot, Y_benz=Y_benz)
 
 fig, ax = plt.subplots(figsize=(6, 3.4))

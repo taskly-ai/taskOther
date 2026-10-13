@@ -47,24 +47,26 @@ def molar_volume(comp, y, T, P_atm, eos):
 
 
 def table_volumes(comp, y, T, P_atm):
-    out = {"ИГ": dict(Z=1.0, v=R * T / (P_atm * ATM), it=0)}
+    vols = {"ИГ": dict(Z=1.0, v=R * T / (P_atm * ATM), it=0)}
     for eos in ("RK", "SRK", "PR"):
-        out[eos] = molar_volume(comp, y, T, P_atm, eos)
-    print(f"{'модель':6s} {'Z':>8s} {'v, л/моль':>10s} {'итераций':>9s}")
-    for k, d in out.items():
-        print(f"{k:6s} {d['Z']:8.4f} {d['v']*1000:10.4f} {d['it']:9d}")
-    return out
+        vols[eos] = molar_volume(comp, y, T, P_atm, eos)
+    report(f"{'модель':6s} {'Z':>8s} {'v, л/моль':>10s} {'итераций':>9s}")
+    for k, d in vols.items():
+        report(f"{k:6s} {d['Z']:8.4f} {d['v']*1000:10.4f} {d['it']:9d}")
+    return vols
 
 
 # %% Задача 2.1. Водород: P = 50 атм, T = 400 К
+task("t21", "Задача 2.1")
 res21 = table_volumes(["H2"], np.array([1.0]), 400.0, 50.0)
 
 # %% Задача 2.2. CH4 25 %, C2H6 : C3H8 = 1 : 3; P = 120 атм, T = 420 К
+task("t22", "Задача 2.2")
 y22 = np.array([0.25, 0.75 / 4, 0.75 * 3 / 4])
 res22 = table_volumes(["CH4", "C2H6", "C3H8"], y22, 420.0, 120.0)
 Tpc = sum(yi * PROPS[g][0] for yi, g in zip(y22, ["CH4", "C2H6", "C3H8"]))
 Ppc = sum(yi * PROPS[g][1] for yi, g in zip(y22, ["CH4", "C2H6", "C3H8"]))
-print(f"Правило Кэя: Tpc = {Tpc:.1f} К, Ppc = {Ppc:.1f} атм; Tpr = {420/Tpc:.3f}, Ppr = {120/Ppc:.3f}")
+report(f"Правило Кэя: Tpc = {Tpc:.1f} К, Ppc = {Ppc:.1f} атм; Tpr = {420/Tpc:.3f}, Ppr = {120/Ppc:.3f}")
 
 # изотерма Z(P) смеси при 420 К по SRK и PR – где газ перестаёт быть идеальным
 Pg = np.linspace(1, 200, 120)

@@ -21,16 +21,43 @@ def quality(y, y_model, n_par):
                 s=np.sqrt(sse / (n - n_par)), dmax=float(np.max(np.abs(e / y))) * 100)
 
 
-FIG_DIR = None      # папка для сохранения рисунков; None - показать под ячейкой
+FIG_DIR = None      # папка для сохранения рисунков; None - рисунки выводятся в конце
+RESULTS = {}        # результаты по задачам (печатаются в последней ячейке)
+FIGS = []
+_TASK = [None]
+
+
+def task(key, title):
+    _TASK[0] = key
+    RESULTS[key] = {"title": title, "lines": []}
+
+
+def report(*args, sep=" "):
+    RESULTS[_TASK[0]]["lines"].append(sep.join(str(a) for a in args))
 
 
 def draw(fig, name):
     fig.tight_layout()
     if FIG_DIR is None:
-        plt.show()
+        FIGS.append(fig)
     else:
         fig.savefig(f"{FIG_DIR}/{name}.png", dpi=200)
-        plt.close(fig)
+    plt.close(fig)
+
+
+def show_results():
+    for r in RESULTS.values():
+        print("=" * 78)
+        print(r["title"])
+        print("=" * 78)
+        print("\n".join(r["lines"]))
+        print()
+
+
+def show_figures():
+    from IPython.display import display
+    for fig in FIGS:
+        display(fig)
 
 
 plt.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.grid": True, "grid.alpha": 0.3})
