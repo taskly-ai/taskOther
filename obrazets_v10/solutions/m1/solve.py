@@ -20,6 +20,7 @@ q11 = quality(C, C_mod, deg + 1)
 F = lambda t: 1000 * sum(cj * t ** (j + 1) / (j + 1) for j, cj in enumerate(c))
 I_mod = F(T1 / 1000) - F(T0 / 1000)
 I_trap = float(np.sum((C[1:] + C[:-1]) / 2 * np.diff(T)))   # трапеции вручную
+assert np.isclose(I_trap, np.trapezoid(C, T))                # то же функцией NumPy trapezoid
 I_simp = float(integrate.simpson(C, x=T))                    # Симпсон (неравном. сетка)
 Cm = {k: v / (T1 - T0) for k, v in (("модель", I_mod), ("трапеции", I_trap), ("Симпсон", I_simp))}
 for j, cj in enumerate(c):
@@ -86,9 +87,9 @@ q_ln = quality(np.log(k), X @ [lnA, Ea], 2)
 rel = optimize.least_squares(lambda p: (np.exp(p[0] - p[1] / (R * TK)) - k) / k, x0=[lnA, Ea])
 lnA_r, Ea_r = rel.x
 q_rel = quality(k, np.exp(lnA_r - Ea_r / (R * TK)), 2)
-# два участка: 100-300 °C и 300-500 °C
+# два участка: 100-400 °C и 400-500 °C (локальная Ea резко растёт выше 400 °C)
 seg = {}
-for name, msk in (("100–300 °C", t <= 300), ("300–500 °C", t >= 300)):
+for name, msk in (("100–400 °C", t <= 400), ("400–500 °C", t >= 400)):
     (l_A, E), *_ = np.linalg.lstsq(X[msk], np.log(k[msk]), rcond=None)
     seg[name] = (E, np.exp(l_A), quality(np.log(k[msk]), X[msk] @ [l_A, E], 2)["R2"])
 report(f"линеаризация: Ea = {Ea/1000:.2f} кДж/моль, A = {np.exp(lnA):.4e} 1/с, R2(ln k) = {q_ln['R2']:.4f}")
@@ -102,7 +103,7 @@ res13 = dict(Ea=Ea, A=np.exp(lnA), q_ln=q_ln, Ea_r=Ea_r, A_r=np.exp(lnA_r), q_re
 fig, ax = plt.subplots(figsize=(6, 3.6))
 ax.plot(1000 / TK, np.log(k), "ko", label="опыт")
 ax.plot(1000 / TK, X @ [lnA, Ea], label="один участок")
-for name, msk in (("100–300 °C", t <= 300), ("300–500 °C", t >= 300)):
+for name, msk in (("100–400 °C", t <= 400), ("400–500 °C", t >= 400)):
     E, A_, _ = seg[name]
     ax.plot(1000 / TK[msk], np.log(A_) - E / (R * TK[msk]), "--", label=f"участок {name}")
 ax.set(xlabel="1000/T, 1/К", ylabel="ln k (k в 1/с)")
